@@ -29,7 +29,6 @@
          -->
     <!-- format h#-category-long_title.(mp4/pdf/png)  -->
     <string-array name="filenames">
-        <item>h1-welcome-welcome.mp4</item>
         <item>h1-hot_tub-hot_tub.mp4</item>
         <item>h1-hot_tub-winter_hot_tub.mp4</item>
         <item>h1-indoor-air_conditioner.mp4</item>
@@ -37,7 +36,6 @@
         <item>h1-outdoor-firepit.mp4</item>
         <item>h1-outdoor-grill.mp4</item>
         <item>h1-outdoor-sink.mp4</item>
-        <item>h1-outdoor-kitchen.mp4</item>
         <item>h1-pool-pool.mp4</item>
         <item>h1-welcome-keypad.mp4</item>
         <item>h1-welcome-keypad_lock.mp4</item>
