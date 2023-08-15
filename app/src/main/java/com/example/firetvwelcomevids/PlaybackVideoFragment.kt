@@ -26,7 +26,6 @@ class PlaybackVideoFragment : VideoSupportFragment() {
         mTransportControlGlue = PlaybackTransportControlGlue(getActivity(), playerAdapter)
         mTransportControlGlue.host = glueHost
         mTransportControlGlue.title = title
-        mTransportControlGlue.subtitle = description
         mTransportControlGlue.playWhenPrepared()
 
         playerAdapter.setDataSource(Uri.parse(videoUrl))

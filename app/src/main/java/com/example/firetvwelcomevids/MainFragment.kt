@@ -102,17 +102,23 @@ class MainFragment : BrowseSupportFragment() {
 
             if (typeAndTitle.size == 2) {
                 val type = typeAndTitle[1]
-                val title = typeAndTitle[0]
-//                return WelcomeMedia(id, slug, house, title, category, type)
-                return Movie(
+                val title = typeAndTitle[0].split("_")
+                    .map { it -> it.replaceFirstChar { it2 ->  it2.uppercase()  } }
+                    .joinToString(" ")
+
+
+                val backgroundSlug = "h1-bg"
+                val newMovie =  Movie(
                     id.toLong(),
                     title,
                     category,
-                    "$serverURL$slug.png",
+                    "$serverURL$backgroundSlug.png",
                     "$serverURL$slug.png",
                     "$serverURL$slug.mp4",
                     type
                 )
+                Log.i(TAG, "parseFileName: $newMovie")
+                return newMovie;
             }
         }
         return null;
@@ -143,7 +149,7 @@ class MainFragment : BrowseSupportFragment() {
         val MOVIE_CATEGORY = arrayOf(
             "welcome",
             "indoor",
-            "outdoors",
+            "outdoor",
             "pool",
             "hot_tub",
         )
