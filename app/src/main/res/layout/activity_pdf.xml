@@ -4,8 +4,9 @@
     android:id="@+id/details_fragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".DetailsActivity"
+    tools:context=".PdfActivity"
     tools:deviceIds="tv" >
+
     <com.github.barteksc.pdfviewer.PDFView
         android:id="@+id/idPDFView"
         android:layout_width="match_parent"
