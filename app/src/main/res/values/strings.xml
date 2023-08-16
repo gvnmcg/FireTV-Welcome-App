@@ -1,7 +1,8 @@
 <resources>
-    <string name="app_name">FireTvWelcomeVids</string>
-    <string name="browse_title">Piru Manors Welcome Videos</string>
+    <string name="app_name">Piru Manor Welcome App</string>
+    <string name="browse_title">Piru Manors</string>
     <string name="house_number">h1</string>
+    <string name="serverURL">serverURL</string>
 
     <string name="related_movies">Related Videos</string>
     <string name="grid_view">Grid View</string>
@@ -29,16 +30,25 @@
          -->
     <!-- format h#-category-long_title.(mp4/pdf/png)  -->
     <string-array name="filenames">
-        <item>h1-hot_tub-hot_tub.mp4</item>
-        <item>h1-hot_tub-winter_hot_tub.mp4</item>
-        <item>h1-indoor-air_conditioner.mp4</item>
-        <item>h1-indoor-fireplace.mp4</item>
-        <item>h1-outdoor-firepit.mp4</item>
-        <item>h1-outdoor-grill.mp4</item>
-        <item>h1-outdoor-sink.mp4</item>
-        <item>h1-pool-pool.mp4</item>
+        <!--h1-->
         <item>h1-welcome-keypad.mp4</item>
         <item>h1-welcome-keypad_lock.mp4</item>
+        <item>h1-indoor-air_conditioner.mp4</item>
+        <item>h1-indoor-fireplace.mp4</item>
+        <item>h1-indoor-heat_and_air.pdf</item>
+        <item>h1-outdoor-grill.mp4</item>
+        <item>h1-outdoor-sink.mp4</item>
+        <item>h1-outdoor-firepit.mp4</item>
+        <item>h1-pool-pool.mp4</item>
+        <item>h1-hot_tub-hot_tub.mp4</item>
+        <item>h1-hot_tub-winter_hot_tub.mp4</item>
+        <!--h2-->
+        <item>h2-hot_tub-hot_tub.mp4</item>
+        <item>h2-indoor-cooktop.mp4</item>
+        <item>h2-indoor-fireplace.mp4</item>
+        <item>h2-indoor-heat_and_air.pdf</item>
+        <item>h2-indoor-stove.mp4</item>
+        <item>h2-pool-pool.mp4</item>
 
     </string-array>
 </resources>
