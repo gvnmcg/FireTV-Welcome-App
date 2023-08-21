@@ -1,6 +1,5 @@
 package com.example.firetvwelcomevids
 
-import java.util.Collections
 import java.util.Timer
 import java.util.TimerTask
 
@@ -46,9 +45,10 @@ class MainFragment : BrowseSupportFragment() {
     private lateinit var mMetrics: DisplayMetrics
     private var mBackgroundTimer: Timer? = null
     private var mBackgroundUri: String? = null
+//    private val serverReader = ServerReader(resources)
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
-        Log.i(TAG, "onCreate")
+        Log.i(TAG, "onActivityCreated")
         super.onActivityCreated(savedInstanceState)
 
         prepareBackgroundManager()
@@ -76,6 +76,7 @@ class MainFragment : BrowseSupportFragment() {
     }
 
     private fun setupUIElements() {
+        Log.i(TAG, "setupUIElements: ")
         title = getString(R.string.browse_title)
         // over title
         headersState = BrowseSupportFragment.HEADERS_ENABLED
@@ -87,14 +88,14 @@ class MainFragment : BrowseSupportFragment() {
         searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
     }
 
-    private fun parseFileName(id: Number, fileName: String): Movie? {
+    private fun  parseFileName(id: Number, fileName: String): Movie? {
         val parts = fileName.split("-")
         val serverURL = "https://piruproperties.com/android/vids/"
 
         if (parts.size == 3) {
             val house = parts[0]
             if (house != resources.getString(R.string.house_number))
-                return null;
+                return null
 
             val category = parts[1]
             val typeAndTitle = parts[2].split(".")
@@ -118,23 +119,26 @@ class MainFragment : BrowseSupportFragment() {
                     type
                 )
                 Log.i(TAG, "parseFileName: $newMovie")
-                return newMovie;
+                return newMovie
             }
         }
-        return null;
+        return null
     }
 
     private fun getRVideoList(): List<Movie> {
         val fileNameList : List<String> = resources.getStringArray(R.array.filenames)
-            .map { it.lowercase() };
-        var count = 0;
+            .map { it.lowercase() }
+        var count = 0
         return fileNameList.mapNotNull { parseFileName(count++, it) }
     }
 
     private fun loadRows() {
+        Log.i(TAG, "loadRows: ")
 //        val list = MovieList.list
-        var list: List<Movie> = getRVideoList()
-
+//        var list: List<Movie> = getRVideoList(this)
+        var count = 0;
+        var list: List<Movie> =
+            filenamesFromSftp()!!.mapNotNull { parseFileName(count++, it) }
 
         //set up map
         val categorizedMap = mutableMapOf<String, MutableList<Movie>>()
@@ -201,6 +205,7 @@ class MainFragment : BrowseSupportFragment() {
     }
 
     private fun setupEventListeners() {
+        Log.i(TAG, "setupEventListeners: ")
         setOnSearchClickedListener {
             Toast.makeText(activity!!, "Implement your own in-app search", Toast.LENGTH_LONG)
                     .show()
@@ -301,7 +306,7 @@ class MainFragment : BrowseSupportFragment() {
     }
 
     companion object {
-        private val TAG = "MainFragment"
+        val TAG = "MainFragment"
 
         private val BACKGROUND_UPDATE_DELAY = 300
         private val GRID_ITEM_WIDTH = 200
