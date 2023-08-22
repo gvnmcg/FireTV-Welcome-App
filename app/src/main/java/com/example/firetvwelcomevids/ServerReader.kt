@@ -1,24 +1,13 @@
 package com.example.firetvwelcomevids
 
-import android.content.res.Resources
 import android.util.Log
-import com.jcraft.jsch.Channel
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
-import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
-import com.jcraft.jsch.SftpException
-//import java.io.File
-//import java.util.Properties
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import java.io.File
-import java.util.Vector
+import kotlinx.coroutines.withContext
 
-//class ServerReader(resources: Resources) {
 
-//    val REMOTE_HOST = "xxx.xxx.xxx.xxx"
 val REMOTE_HOST = "access960789971.webspace-data.io"
 val USERNAME = "u112089698"
 val PASSWORD = "505NotFound!"
@@ -26,51 +15,7 @@ val REMOTE_PORT = 22
 
 val house_number = "h1"
 
-//    val resources = resources
-
 val serverURL = "https://piruproperties.com/android/vids/"
-//    val backgroundSlug = "${resources.getString(R.string.house_number)}-bg"
-
-
-fun connectToSftp(): Boolean {
-
-//    var jschSession: Session? = null
-    GlobalScope.launch(Dispatchers.IO) {
-
-        val jsch = JSch()
-        val jschSession: Session? = jsch.getSession(USERNAME, REMOTE_HOST, REMOTE_PORT)
-        try {
-//            jsch.setKnownHosts("/home/mkyong/.ssh/known_hosts")
-            jschSession?.setPassword(PASSWORD)
-
-//            val config = Properties()
-//            config["StrictHostKeyChecking"] = "no"
-//            jschSession.setConfig(config)
-            jschSession?.setConfig("StrictHostKeyChecking", "no")
-
-            jschSession?.connect(10000)
-            val sftp: Channel? = jschSession?.openChannel("sftp")
-            Log.i(TAG, "connectToSftp: $sftp")
-            sftp?.connect(5000)
-            val channelSftp: ChannelSftp = sftp as ChannelSftp
-            Log.i(TAG, "connectToSftp: ${sftp.pwd()}")
-//            Log.i(TAG, "connectToSftp: ${sftp.cd("/android/vids")}")
-            Log.i(TAG, "connectToSftp: ${sftp.ls("/android/vids").map { it.toString() }}")
-
-//            channelSftp.put(srcFile.absolutePath, ftpPath)
-            channelSftp.exit()
-
-        } catch (e: JSchException) {
-            e.printStackTrace()
-        } catch (e: SftpException) {
-            e.printStackTrace()
-        } finally {
-            jschSession?.disconnect()
-        }
-    }
-    return true
-}
-
 
 private fun parseFileName(id: Number, fileName: String): Movie? {
     val parts = fileName.split("-")
@@ -109,105 +54,51 @@ private fun parseFileName(id: Number, fileName: String): Movie? {
     return null;
 }
 
-public fun filenamesFromSftp(): List<String>? {
-    Log.i(TAG, "filenamesFromSftp: ")
-
-    var videoFileNames: List<String>? = listOf();
-//    var jschSession: Session? = null
-    GlobalScope.launch(Dispatchers.IO) {
+suspend fun movieMapSFTP(): Map<String, MutableList<Movie>> {
+    return withContext(Dispatchers.IO) {
 
         val jsch = JSch()
-        val jschSession: Session? = jsch.getSession(USERNAME, REMOTE_HOST, REMOTE_PORT)
-        try {
-            jschSession?.setPassword(PASSWORD)
-            jschSession?.setConfig("StrictHostKeyChecking", "no")
-            jschSession?.connect(10000)
+        val session: Session = jsch.getSession(USERNAME, REMOTE_HOST, REMOTE_PORT)
+        session.setPassword(PASSWORD)
 
-            val sftp: Channel? = jschSession?.openChannel("sftp")
-            sftp?.connect(5000)
-            val channelSftp: ChannelSftp = sftp as ChannelSftp
-            Log.i(TAG, "sftp channel: $channelSftp")
+        // Disable strict host key checking (for testing purposes; consider removing in production)
+        session.setConfig("StrictHostKeyChecking", "no")
 
-            val files = sftp.ls("/android/vids")
+        session.connect()
 
-            videoFileNames = files.map { if (it is ChannelSftp.LsEntry) it.filename else null }
-                .filterNotNull()
+        val channel: ChannelSftp = session.openChannel("sftp") as ChannelSftp
+        channel.connect()
+
+        val fileMap: Map<String, MutableList<Movie>> = try {
+            val files: List<Movie> = channel.ls("/android/vids")
+            .filterIsInstance<ChannelSftp.LsEntry>().map { it.filename }
                 .filter { it.startsWith("h1") }
                 .filter { it.endsWith(".mp4") || it.endsWith(".pdf") }
                 .sortedBy { it }
-
-            for (filename in videoFileNames!!) {
-                Log.i(TAG, "sftp file name: $filename")
-            }
-
-            channelSftp.exit()
-
-        } catch (e: JSchException) {
-            e.printStackTrace()
-        } catch (e: SftpException) {
-            e.printStackTrace()
-        } finally {
-            jschSession?.disconnect()
-        }
-    }
-    return videoFileNames
-}
-
-fun moviesFromSftp(): List<Movie?>? {
-
-    var videoFileNames: List<Movie?>? = null;
-//    var jschSession: Session? = null
-    GlobalScope.launch(Dispatchers.IO) {
-
-        val jsch = JSch()
-        val jschSession: Session? = jsch.getSession(USERNAME, REMOTE_HOST, REMOTE_PORT)
-        try {
-//            jsch.setKnownHosts("/home/mkyong/.ssh/known_hosts")
-            jschSession?.setPassword(PASSWORD)
-
-//            val config = Properties()
-//            config["StrictHostKeyChecking"] = "no"
-//            jschSession.setConfig(config)
-            jschSession?.setConfig("StrictHostKeyChecking", "no")
-
-            jschSession?.connect(10000)
-            val sftp: Channel? = jschSession?.openChannel("sftp")
-            Log.i(TAG, "connectToSftp: $sftp")
-            sftp?.connect(5000)
-            val channelSftp: ChannelSftp = sftp as ChannelSftp
-//            Log.i(TAG, "connectToSftp: ${sftp.pwd()}")
-//            Log.i(TAG, "connectToSftp: ${sftp.cd("/android/vids")}")
-            val files = sftp.ls("/android/vids")
-
-            var count = 0
-
-
-            videoFileNames = files.map { if (it is ChannelSftp.LsEntry) it.filename else null }
+                .map { parseFileName(0, it) }
                 .filterNotNull()
-                .filter { it.startsWith("h1") }
-                .filter { it.endsWith(".mp4") || it.endsWith(".pdf") }
-//                .map { it.replace(".mp4", "") }
-                .sortedBy { it }
-                .map { parseFileName(count++, it) }
 
-            for (filename in videoFileNames!!) {
-                Log.i(TAG, "sftp file name: $filename")
+            var categorizedMap = mutableMapOf<String, MutableList<Movie>>()
+
+            for (item in files!!) {
+//                if (item is Movie) {
+                    val category = item!!.description as String
+                    val itemList = categorizedMap.getOrPut(category) { mutableListOf() }
+                    itemList.add(item)
+//                }
             }
+            categorizedMap
 
-//            channelSftp.put(srcFile.absolutePath, ftpPath)
-            channelSftp.exit()
-
-        } catch (e: JSchException) {
-            e.printStackTrace()
-        } catch (e: SftpException) {
-            e.printStackTrace()
+        } catch (e: Exception) {
+//            emptyList() // Return an empty list in case of an error
+            emptyMap()
         } finally {
-            jschSession?.disconnect()
+            channel.disconnect()
+            session.disconnect()
         }
-    }
-    return videoFileNames
-}
 
-//    companion object {
+        fileMap
+    }
+}
 
 internal const val TAG = "ServerReader"

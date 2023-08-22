@@ -33,6 +33,10 @@ import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Loads a grid of cards with movies to browse.
@@ -134,19 +138,47 @@ class MainFragment : BrowseSupportFragment() {
 
     private fun loadRows() {
         Log.i(TAG, "loadRows: ")
-//        val list = MovieList.list
-//        var list: List<Movie> = getRVideoList(this)
-        var count = 0;
-        var list: List<Movie> =
-            filenamesFromSftp()!!.mapNotNull { parseFileName(count++, it) }
+        runBlocking {
 
-        //set up map
-        val categorizedMap = mutableMapOf<String, MutableList<Movie>>()
+            val categorizedMap: Map<String, MutableList<Movie>> = movieMapSFTP()
 
-        for (item in list) {
-            val category = item.description as String
-            val itemList = categorizedMap.getOrPut(category) { mutableListOf() }
-            itemList.add(item)
+            GlobalScope.launch(Dispatchers.Main) {
+
+                if (categorizedMap.isEmpty()) {
+                    Log.e(TAG, "loadRows: EMPTY MAP", )
+                } else {
+                    Log.i(TAG, "loadRows: $categorizedMap")
+
+                    val MOVIE_CATEGORY = arrayOf(
+                        "welcome",
+                        "indoor",
+                        "outdoor",
+                        "pool",
+                        "hot_tub",
+                    )
+                    val fullRowsAdapter = ArrayObjectAdapter(ListRowPresenter())
+
+                    for (cat in MOVIE_CATEGORY) {
+                        val mediaList = categorizedMap.get(cat)
+                        var id = 0
+
+                        val header = HeaderItem(
+                            id.toLong(), cat.replaceFirstChar { it.uppercase() }
+                                .replace("_", " "))
+                        val cardPresenter = CardPresenter()
+                        val movieListAdapter = ArrayObjectAdapter(cardPresenter)
+                        mediaList?.forEach {
+                            movieListAdapter.add(it)
+                            Log.i(TAG, "loadRows: ${it.title}")
+                        }
+                        fullRowsAdapter.add(ListRow(header, movieListAdapter))
+                        id++
+                    }
+                    Log.i(TAG, "loadRows: $fullRowsAdapter")
+
+                    adapter = fullRowsAdapter
+                }
+            }
         }
 
         //set up adapter with map info
