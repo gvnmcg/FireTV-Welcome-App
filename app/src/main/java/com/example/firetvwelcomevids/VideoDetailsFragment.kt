@@ -110,7 +110,7 @@ class VideoDetailsFragment : DetailsSupportFragment() {
                         resources.getString(R.string.watch_trailer_1),
                         resources.getString(R.string.watch_trailer_2)))
 
-
+        mAdapter.add(actionAdapter)
         mAdapter.add(row)
     }
 
@@ -129,9 +129,18 @@ class VideoDetailsFragment : DetailsSupportFragment() {
 
         detailsPresenter.onActionClickedListener = OnActionClickedListener { action ->
             if (action.id == ACTION_WATCH_TRAILER) {
-                val intent = Intent(activity!!, PlaybackActivity::class.java)
-                intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
-                startActivity(intent)
+                if (mSelectedMovie?.studio == "pdf") {
+                    val intent = Intent(activity!!, PDFViewerActivity::class.java)
+                    intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(activity!!, PlaybackActivity::class.java)
+                    intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
+                    startActivity(intent)
+                }
+//                val intent = Intent(activity!!, PlaybackActivity::class.java)
+//                intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
+//                startActivity(intent)
             } else {
                 Toast.makeText(activity!!, action.toString(), Toast.LENGTH_SHORT).show()
             }
