@@ -180,60 +180,6 @@ class MainFragment : BrowseSupportFragment() {
                 }
             }
         }
-
-        //set up adapter with map info
-        val MOVIE_CATEGORY = arrayOf(
-            "welcome",
-            "indoor",
-            "outdoor",
-            "pool",
-            "hot_tub",
-        )
-        val fullRowsAdapter = ArrayObjectAdapter(ListRowPresenter())
-
-        for (cat in MOVIE_CATEGORY){
-            val mediaList = categorizedMap.get(cat)
-            var id = 0
-
-            val header = HeaderItem(
-                id.toLong(), cat.replaceFirstChar { it.uppercase() }
-                    .replace("_", " "))
-            val cardPresenter = CardPresenter()
-            val movieListAdapter = ArrayObjectAdapter(cardPresenter)
-            mediaList?.forEach {
-                movieListAdapter.add(it)
-            }
-            fullRowsAdapter.add(ListRow(header, movieListAdapter))
-            id++
-        }
-
-        adapter = fullRowsAdapter
-//
-//        val rowsAdapter = ArrayObjectAdapter(ListRowPresenter())
-//        val cardPresenter = CardPresenter()
-//
-//        for (i in 0 until NUM_ROWS) {
-//            if (i != 0) {
-//                Collections.shuffle(list)
-//            }
-//            val listRowAdapter = ArrayObjectAdapter(cardPresenter)
-//            for (j in 0 until NUM_COLS) {
-//                listRowAdapter.add(list[j % 5])
-//            }
-//            val header = HeaderItem(i.toLong(), MovieList.MOVIE_CATEGORY[i])
-//            rowsAdapter.add(ListRow(header, listRowAdapter))
-//        }
-//
-//        val gridHeader = HeaderItem(NUM_ROWS.toLong(), "PREFERENCES")
-//
-//        val mGridPresenter = GridItemPresenter()
-//        val gridRowAdapter = ArrayObjectAdapter(mGridPresenter)
-//        gridRowAdapter.add(resources.getString(R.string.grid_view))
-//        gridRowAdapter.add(getString(R.string.error_fragment))
-//        gridRowAdapter.add(resources.getString(R.string.personal_settings))
-//        rowsAdapter.add(ListRow(gridHeader, gridRowAdapter))
-//
-//        adapter = rowsAdapter
     }
 
     private fun setupEventListeners() {
