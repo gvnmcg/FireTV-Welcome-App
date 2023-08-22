@@ -44,7 +44,7 @@ private fun parseFileName(id: Number, fileName: String): Movie? {
                 category,
                 "$serverURL$backgroundSlug.png",
                 "$serverURL$slug.png",
-                "$serverURL$slug.mp4",
+                "$serverURL$fileName",
                 type
             )
             Log.i(MainFragment.TAG, "parseFileName: $newMovie")

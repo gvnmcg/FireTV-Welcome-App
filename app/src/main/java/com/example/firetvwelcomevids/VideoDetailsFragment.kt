@@ -109,8 +109,8 @@ class VideoDetailsFragment : DetailsSupportFragment() {
                         ACTION_WATCH_TRAILER,
                         resources.getString(R.string.watch_trailer_1),
                         resources.getString(R.string.watch_trailer_2)))
-
-        mAdapter.add(actionAdapter)
+        row.actionsAdapter = actionAdapter
+//        mAdapter.add(actionAdapter)
         mAdapter.add(row)
     }
 
@@ -130,7 +130,7 @@ class VideoDetailsFragment : DetailsSupportFragment() {
         detailsPresenter.onActionClickedListener = OnActionClickedListener { action ->
             if (action.id == ACTION_WATCH_TRAILER) {
                 if (mSelectedMovie?.studio == "pdf") {
-                    val intent = Intent(activity!!, PDFViewerActivity::class.java)
+                    val intent = Intent(activity!!, PDFActivity::class.java)
                     intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
                     startActivity(intent)
                 } else {
