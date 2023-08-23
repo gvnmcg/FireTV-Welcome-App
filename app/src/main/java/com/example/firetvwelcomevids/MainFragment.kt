@@ -140,7 +140,8 @@ class MainFragment : BrowseSupportFragment() {
         Log.i(TAG, "loadRows: ")
         runBlocking {
 
-            val categorizedMap: Map<String, MutableList<Movie>> = movieMapSFTP()
+            val categorizedMap: Map<String, MutableList<Movie>> =
+                movieMapSFTP(resources.getString(R.string.house_number))
 
             GlobalScope.launch(Dispatchers.Main) {
 

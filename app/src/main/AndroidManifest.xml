@@ -43,6 +43,9 @@
         <activity
             android:name=".PDFActivity"
             android:exported="false" />
+        <activity
+            android:name=".ImageActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -133,6 +133,10 @@ class VideoDetailsFragment : DetailsSupportFragment() {
                     val intent = Intent(activity!!, PDFActivity::class.java)
                     intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
                     startActivity(intent)
+                } else if (mSelectedMovie?.studio == "png") {
+                    val intent = Intent(activity!!, ImageActivity::class.java)
+                    intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)
+                    startActivity(intent)
                 } else {
                     val intent = Intent(activity!!, PlaybackActivity::class.java)
                     intent.putExtra(DetailsActivity.MOVIE, mSelectedMovie)

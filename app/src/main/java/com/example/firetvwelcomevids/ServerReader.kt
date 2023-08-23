@@ -13,17 +13,17 @@ val USERNAME = "u112089698"
 val PASSWORD = "505NotFound!"
 val REMOTE_PORT = 22
 
-val house_number = "h1"
 
-val serverURL = "https://piruproperties.com/android/vids/"
 
-private fun parseFileName(id: Number, fileName: String): Movie? {
+private fun parseFileName(id: Number, fileName: String, houseNumber: String): Movie? {
     val parts = fileName.split("-")
-    val serverURL = "https://piruproperties.com/android/vids/"
+    val serverURL = "https://piruproperties.com"
+    val vidsDir = "/android/media/"
+    val imagesDir = "/android/images/"
 
     if (parts.size == 3) {
         val house = parts[0]
-        if (house != house_number)
+        if (house != houseNumber)
             return null;
 
         val category = parts[1]
@@ -37,14 +37,15 @@ private fun parseFileName(id: Number, fileName: String): Movie? {
                 .joinToString(" ")
 
 
-            val backgroundSlug = "h1-bg"
+            val backgroundSlug = "$houseNumber-bg"
+
             val newMovie = Movie(
                 id.toLong(),
                 title,
                 category,
-                "$serverURL$backgroundSlug.png",
-                "$serverURL$slug.png",
-                "$serverURL$fileName",
+                "$serverURL$imagesDir$backgroundSlug.png",
+                "$serverURL$imagesDir$slug.png",
+                "$serverURL$vidsDir$fileName",
                 type
             )
             Log.i(MainFragment.TAG, "parseFileName: $newMovie")
@@ -54,7 +55,7 @@ private fun parseFileName(id: Number, fileName: String): Movie? {
     return null;
 }
 
-suspend fun movieMapSFTP(): Map<String, MutableList<Movie>> {
+suspend fun movieMapSFTP(houseNumber: String): Map<String, MutableList<Movie>> {
     return withContext(Dispatchers.IO) {
 
         val jsch = JSch()
@@ -70,12 +71,11 @@ suspend fun movieMapSFTP(): Map<String, MutableList<Movie>> {
         channel.connect()
 
         val fileMap: Map<String, MutableList<Movie>> = try {
-            val files: List<Movie> = channel.ls("/android/vids")
+            val files: List<Movie> = channel.ls("/android/media")
             .filterIsInstance<ChannelSftp.LsEntry>().map { it.filename }
-                .filter { it.startsWith("h1") }
-                .filter { it.endsWith(".mp4") || it.endsWith(".pdf") }
+                .filter { it.startsWith(houseNumber) }
                 .sortedBy { it }
-                .map { parseFileName(0, it) }
+                .mapIndexed { ix, it -> parseFileName(ix, it, houseNumber) }
                 .filterNotNull()
 
             var categorizedMap = mutableMapOf<String, MutableList<Movie>>()
