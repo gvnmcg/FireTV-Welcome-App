@@ -92,56 +92,17 @@ class MainFragment : BrowseSupportFragment() {
         searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
     }
 
-    private fun  parseFileName(id: Number, fileName: String): Movie? {
-        val parts = fileName.split("-")
-        val serverURL = "https://piruproperties.com/android/vids/"
-
-        if (parts.size == 3) {
-            val house = parts[0]
-            if (house != resources.getString(R.string.house_number))
-                return null
-
-            val category = parts[1]
-            val typeAndTitle = parts[2].split(".")
-            val slug = fileName.split(".")[0]
-
-            if (typeAndTitle.size == 2) {
-                val type = typeAndTitle[1]
-                val title = typeAndTitle[0].split("_")
-                    .map { it -> it.replaceFirstChar { it2 ->  it2.uppercase()  } }
-                    .joinToString(" ")
-
-
-                val backgroundSlug = "h1-bg"
-                val newMovie =  Movie(
-                    id.toLong(),
-                    title,
-                    category,
-                    "$serverURL$backgroundSlug.png",
-                    "$serverURL$slug.png",
-                    "$serverURL$slug.mp4",
-                    type
-                )
-                Log.i(TAG, "parseFileName: $newMovie")
-                return newMovie
-            }
-        }
-        return null
-    }
-
-    private fun getRVideoList(): List<Movie> {
-        val fileNameList : List<String> = resources.getStringArray(R.array.filenames)
-            .map { it.lowercase() }
-        var count = 0
-        return fileNameList.mapNotNull { parseFileName(count++, it) }
-    }
-
     private fun loadRows() {
         Log.i(TAG, "loadRows: ")
         runBlocking {
 
             val categorizedMap: Map<String, MutableList<Movie>> =
-                movieMapSFTP(resources.getString(R.string.house_number))
+                movieMapSFTP(resources.getString(R.string.house_number),
+                            resources.getString(R.string.REMOTE_USER),
+                            resources.getString(R.string.REMOTE_PASSWORD),
+                            resources.getString(R.string.REMOTE_HOST),
+                            resources.getString(R.string.REMOTE_PORT).toInt()
+                    )
 
             GlobalScope.launch(Dispatchers.Main) {
 
@@ -150,13 +111,15 @@ class MainFragment : BrowseSupportFragment() {
                 } else {
                     Log.i(TAG, "loadRows: $categorizedMap")
 
-                    val MOVIE_CATEGORY = arrayOf(
+                    var MOVIE_CATEGORY = arrayOf(
                         "welcome",
                         "indoor",
                         "outdoor",
                         "pool",
                         "hot_tub",
+                        "help"
                     )
+
                     val fullRowsAdapter = ArrayObjectAdapter(ListRowPresenter())
 
                     for (cat in MOVIE_CATEGORY) {
@@ -202,7 +165,7 @@ class MainFragment : BrowseSupportFragment() {
                 row: Row) {
 
             if (item is Movie) {
-                Log.d(TAG, "Item: " + item.toString())
+                Log.d(TAG, "Item: $item")
                 val intent = Intent(activity!!, DetailsActivity::class.java)
                 intent.putExtra(DetailsActivity.MOVIE, item)
 
@@ -290,7 +253,5 @@ class MainFragment : BrowseSupportFragment() {
         private val BACKGROUND_UPDATE_DELAY = 300
         private val GRID_ITEM_WIDTH = 200
         private val GRID_ITEM_HEIGHT = 200
-        private val NUM_ROWS = 6
-        private val NUM_COLS = 15
     }
 }
