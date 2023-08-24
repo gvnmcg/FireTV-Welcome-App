@@ -23,8 +23,7 @@ class ImageActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_image)
         imageView = findViewById(R.id.imageView)
-//        val movie = intent.getSerializableExtra(DetailsActivity.MOVIE, Movie::class.java)
-        val movie = intent.getSerializableExtra(DetailsActivity.MOVIE) as Movie?
+        val movie = intent.getSerializableExtra(MainActivity.MOVIE) as Movie?
         movie?.videoUrl?.let { loadImageFromUrl(it) }
     }
     private fun loadImageFromUrl(imageUrl: String) {
