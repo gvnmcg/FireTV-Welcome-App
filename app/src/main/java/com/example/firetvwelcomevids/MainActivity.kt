@@ -17,4 +17,8 @@ class MainActivity : FragmentActivity() {
                     .commitNow()
         }
     }
+
+    companion object {
+        const val MOVIE = "Movie"
+    }
 }

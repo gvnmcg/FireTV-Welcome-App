@@ -61,7 +61,8 @@ class MainFragment : BrowseSupportFragment() {
 
         loadRows()
 
-        setupEventListeners()
+        onItemViewClickedListener = ItemViewClickedListener()
+        onItemViewSelectedListener = ItemViewSelectedListener()
     }
 
     override fun onDestroy() {
@@ -89,7 +90,7 @@ class MainFragment : BrowseSupportFragment() {
         // set fastLane (or headers) background color
         brandColor = ContextCompat.getColor(activity!!, R.color.fastlane_background)
         // set search icon color
-        searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
+//        searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
     }
 
     private fun loadRows() {
@@ -122,19 +123,18 @@ class MainFragment : BrowseSupportFragment() {
 
                     val fullRowsAdapter = ArrayObjectAdapter(ListRowPresenter())
 
+                    var id = 0
                     for (cat in MOVIE_CATEGORY) {
+                        id++
                         val mediaList = categorizedMap.get(cat)
-                        var id = 0
 
                         val header = HeaderItem(
                             id.toLong(), cat.replaceFirstChar { it.uppercase() }
                                 .replace("_", " "))
-                        val cardPresenter = CardPresenter()
-                        val movieListAdapter = ArrayObjectAdapter(cardPresenter)
-                        mediaList?.forEach {
-                            movieListAdapter.add(it)
-                            Log.i(TAG, "loadRows: ${it.title}")
-                        }
+
+//                        val cardPresenter = CardPresenter()
+                        val movieListAdapter = ArrayObjectAdapter(CardPresenter())
+                        mediaList?.forEach { movieListAdapter.add(it) }
                         fullRowsAdapter.add(ListRow(header, movieListAdapter))
                         id++
                     }
@@ -146,16 +146,16 @@ class MainFragment : BrowseSupportFragment() {
         }
     }
 
-    private fun setupEventListeners() {
-        Log.i(TAG, "setupEventListeners: ")
-        setOnSearchClickedListener {
-            Toast.makeText(activity!!, "Implement your own in-app search", Toast.LENGTH_LONG)
-                    .show()
-        }
-
-        onItemViewClickedListener = ItemViewClickedListener()
-        onItemViewSelectedListener = ItemViewSelectedListener()
-    }
+//    private fun setupEventListeners() {
+//        Log.i(TAG, "setupEventListeners: ")
+//        setOnSearchClickedListener {
+//            Toast.makeText(activity!!, "Implement your own in-app search", Toast.LENGTH_LONG)
+//                    .show()
+//        }
+//
+//        onItemViewClickedListener = ItemViewClickedListener()
+//        onItemViewSelectedListener = ItemViewSelectedListener()
+//    }
 
     private inner class ItemViewClickedListener : OnItemViewClickedListener {
         override fun onItemClicked(
@@ -166,15 +166,20 @@ class MainFragment : BrowseSupportFragment() {
 
             if (item is Movie) {
                 Log.d(TAG, "Item: $item")
-                val intent = Intent(activity!!, DetailsActivity::class.java)
-                intent.putExtra(DetailsActivity.MOVIE, item)
+                if (item.studio == "pdf") {
+                    val intent = Intent(activity!!, PDFActivity::class.java)
+                    intent.putExtra(MainActivity.MOVIE, item)
+                    startActivity(intent)
+                } else if (item.studio == "png") {
+                    val intent = Intent(activity!!, ImageActivity::class.java)
+                    intent.putExtra(MainActivity.MOVIE, item)
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(activity!!, PlaybackActivity::class.java)
+                    intent.putExtra(MainActivity.MOVIE, item)
+                    startActivity(intent)
+                }
 
-                val bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                        activity!!,
-                        (itemViewHolder.view as ImageCardView).mainImageView,
-                        DetailsActivity.SHARED_ELEMENT_NAME)
-                        .toBundle()
-                startActivity(intent, bundle)
             }
             else if (item is String) {
                 if (item.contains(getString(R.string.error_fragment))) {
