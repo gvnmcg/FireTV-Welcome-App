@@ -35,7 +35,7 @@ class ImageActivity : FragmentActivity() {
         }
     }
     private fun fetchImageBytes(imageUrl: String): ByteArray {
-        val url = URL(imageUrl)
+        val url = URL("$serverURL$vidsDir$imageUrl")
         val connection = url.openConnection() as HttpURLConnection
         connection.connect()
         val inputStream = BufferedInputStream(connection.inputStream)

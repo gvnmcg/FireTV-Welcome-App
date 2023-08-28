@@ -72,7 +72,6 @@ class MainFragment : BrowseSupportFragment() {
     }
 
     private fun prepareBackgroundManager() {
-
         mBackgroundManager = BackgroundManager.getInstance(activity)
         mBackgroundManager.attach(activity!!.window)
         mDefaultBackground = ContextCompat.getDrawable(activity!!, R.drawable.default_background)
@@ -97,65 +96,40 @@ class MainFragment : BrowseSupportFragment() {
         Log.i(TAG, "loadRows: ")
         runBlocking {
 
-            val categorizedMap: Map<String, MutableList<Movie>> =
-                movieMapSFTP(resources.getString(R.string.house_number),
-                            resources.getString(R.string.REMOTE_USER),
-                            resources.getString(R.string.REMOTE_PASSWORD),
-                            resources.getString(R.string.REMOTE_HOST),
-                            resources.getString(R.string.REMOTE_PORT).toInt()
-                    )
+            val mediaMap: Map<String,List<Movie>> = getMediaMapFromList(csvMediaList(resources.getString(R.string.house_number),
+                    resources.getString(R.string.REMOTE_USER),
+                    resources.getString(R.string.REMOTE_PASSWORD),
+                    resources.getString(R.string.REMOTE_HOST),
+                    resources.getString(R.string.REMOTE_PORT).toInt()))
 
             GlobalScope.launch(Dispatchers.Main) {
+                val browserAdapter = ArrayObjectAdapter(ListRowPresenter())
 
-                if (categorizedMap.isEmpty()) {
+                if (mediaMap.isEmpty()) {
                     Log.e(TAG, "loadRows: EMPTY MAP", )
                 } else {
-                    Log.i(TAG, "loadRows: $categorizedMap")
-
-                    var MOVIE_CATEGORY = arrayOf(
-                        "welcome",
-                        "indoor",
-                        "outdoor",
-                        "pool",
-                        "hot_tub",
-                        "help"
-                    )
-
-                    val fullRowsAdapter = ArrayObjectAdapter(ListRowPresenter())
+                    Log.i(TAG, "loadRows: $mediaMap")
 
                     var id = 0
-                    for (cat in MOVIE_CATEGORY) {
+                    for (cat in mediaMap.keys) {
                         id++
-                        val mediaList = categorizedMap.get(cat)
+                        val mediaList = mediaMap[cat]
+                        Log.i(TAG, "media list:$cat -> $mediaList")
 
-                        val header = HeaderItem(
-                            id.toLong(), cat.replaceFirstChar { it.uppercase() }
-                                .replace("_", " "))
-
-//                        val cardPresenter = CardPresenter()
-                        val movieListAdapter = ArrayObjectAdapter(CardPresenter())
+                        val cardPresenter = CardPresenter()
+                        val movieListAdapter = ArrayObjectAdapter(cardPresenter)
                         mediaList?.forEach { movieListAdapter.add(it) }
-                        fullRowsAdapter.add(ListRow(header, movieListAdapter))
+                        browserAdapter.add(ListRow(
+                            HeaderItem(id.toLong(), cat),
+                            movieListAdapter))
                         id++
                     }
-                    Log.i(TAG, "loadRows: $fullRowsAdapter")
-
-                    adapter = fullRowsAdapter
+                    Log.i(TAG, "loadRows: $browserAdapter")
                 }
+                adapter = browserAdapter
             }
         }
     }
-
-//    private fun setupEventListeners() {
-//        Log.i(TAG, "setupEventListeners: ")
-//        setOnSearchClickedListener {
-//            Toast.makeText(activity!!, "Implement your own in-app search", Toast.LENGTH_LONG)
-//                    .show()
-//        }
-//
-//        onItemViewClickedListener = ItemViewClickedListener()
-//        onItemViewSelectedListener = ItemViewSelectedListener()
-//    }
 
     private inner class ItemViewClickedListener : OnItemViewClickedListener {
         override fun onItemClicked(
@@ -166,20 +140,24 @@ class MainFragment : BrowseSupportFragment() {
 
             if (item is Movie) {
                 Log.d(TAG, "Item: $item")
+
                 if (item.studio == "pdf") {
                     val intent = Intent(activity!!, PDFActivity::class.java)
                     intent.putExtra(MainActivity.MOVIE, item)
                     startActivity(intent)
-                } else if (item.studio == "png") {
+                } else if (item.studio == "png" || item.studio == "jpg") {
                     val intent = Intent(activity!!, ImageActivity::class.java)
                     intent.putExtra(MainActivity.MOVIE, item)
                     startActivity(intent)
-                } else {
+                } else if (item.studio == "youtube") {
+                    val intent = Intent(activity!!, YoutubePlaybackActivity::class.java)
+                    intent.putExtra(MainActivity.MOVIE, item)
+                    startActivity(intent)
+                } else if (item.studio == "mp4") {
                     val intent = Intent(activity!!, PlaybackActivity::class.java)
                     intent.putExtra(MainActivity.MOVIE, item)
                     startActivity(intent)
                 }
-
             }
             else if (item is String) {
                 if (item.contains(getString(R.string.error_fragment))) {
@@ -197,7 +175,7 @@ class MainFragment : BrowseSupportFragment() {
         override fun onItemSelected(itemViewHolder: Presenter.ViewHolder?, item: Any?,
                                     rowViewHolder: RowPresenter.ViewHolder, row: Row) {
             if (item is Movie) {
-                mBackgroundUri = item.backgroundImageUrl
+                mBackgroundUri = "$serverURL$imagesDir${item.backgroundImageUrl}"
                 startBackgroundTimer()
             }
         }
