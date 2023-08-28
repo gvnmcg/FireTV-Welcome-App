@@ -28,7 +28,7 @@ class PlaybackVideoFragment : VideoSupportFragment() {
         mTransportControlGlue.title = title
         mTransportControlGlue.playWhenPrepared()
 
-        playerAdapter.setDataSource(Uri.parse(videoUrl))
+        playerAdapter.setDataSource(Uri.parse("$serverURL$vidsDir$videoUrl"))
     }
 
     override fun onPause() {

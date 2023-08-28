@@ -49,7 +49,8 @@ class PDFActivity : FragmentActivity() {
         }
     }
     private fun fetchPdfBytes(pdfUrl: String): ByteArray {
-        val url = URL(pdfUrl)
+
+        val url = URL("$serverURL$vidsDir$pdfUrl")
         val connection = url.openConnection() as HttpURLConnection
         connection.connect()
         val inputStream = BufferedInputStream(connection.inputStream)
