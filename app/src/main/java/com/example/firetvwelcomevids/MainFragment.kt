@@ -24,7 +24,6 @@ import androidx.core.content.ContextCompat
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
@@ -36,8 +35,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.net.Inet4Address
-import kotlin.concurrent.timerTask
 
 /**
  * Loads a grid of cards with movies to browse.
@@ -52,7 +49,7 @@ class MainFragment : BrowseSupportFragment() {
     private var mBackgroundTimer: Timer? = null
     private var mBackgroundUri: String? = "h1-bg.png"
     private var propertyId = "h1"
-    private var propertyPrefs = false
+    private var propertyPrefs = true
 //    private val serverReader = ServerReader(resources)
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -66,6 +63,7 @@ class MainFragment : BrowseSupportFragment() {
             propertyId = prefs.getString("propertyId", propertyId)!!
         }
         mBackgroundUri = "$propertyId-bg.png"
+        startBackgroundTimer()
 
         prepareBackgroundManager()
 
@@ -85,15 +83,15 @@ class MainFragment : BrowseSupportFragment() {
 
     private fun prepareBackgroundManager() {
         mBackgroundManager = BackgroundManager.getInstance(activity)
-        mBackgroundManager.attach(activity!!.window)
-        mDefaultBackground = ContextCompat.getDrawable(activity!!, R.drawable.default_background)
+        mBackgroundManager.attach(requireActivity().window)
+        mDefaultBackground = ContextCompat.getDrawable(requireActivity(), R.drawable.default_background)
         mMetrics = DisplayMetrics()
         requireActivity().windowManager.defaultDisplay.getMetrics(mMetrics)
     }
 
     private fun setupUIElements() {
         Log.i(TAG, "setupUIElements: ")
-        title = getString(R.string.browse_title)
+        title = propertyCode(propertyId)
         // over title
         headersState = BrowseSupportFragment.HEADERS_ENABLED
         isHeadersTransitionOnBackEnabled = true
@@ -149,10 +147,10 @@ class MainFragment : BrowseSupportFragment() {
 
                     val mGridPresenter = GridItemPresenter()
                     val gridRowAdapter = ArrayObjectAdapter(mGridPresenter)
-                    gridRowAdapter.add(getPropertyAddress("h1"))
-                    gridRowAdapter.add(getPropertyAddress("h2"))
-                    gridRowAdapter.add(getPropertyAddress("h3"))
-                    gridRowAdapter.add(getPropertyAddress("h4"))
+                    gridRowAdapter.add("h1")
+                    gridRowAdapter.add("h2")
+                    gridRowAdapter.add("h3")
+                    gridRowAdapter.add("h4")
                     browserAdapter.add(ListRow(gridHeader, gridRowAdapter))
                 }
 
@@ -167,6 +165,9 @@ class MainFragment : BrowseSupportFragment() {
                 item: Any,
                 rowViewHolder: RowPresenter.ViewHolder,
                 row: Row) {
+
+            startBackgroundTimer()
+
 
             if (item is Movie) {
                 Log.d(TAG, "Item: $item")
@@ -215,13 +216,14 @@ class MainFragment : BrowseSupportFragment() {
 
                 if (propertyPrefs){
 
-                    val propertyCode = getPropertyCode(item)
                     val prefs = activity!!.getSharedPreferences("com.example.firetvwelcomevids", 0)
                     val editor = prefs.edit()
-                    editor.putString("propertyId", propertyCode)
+                    editor.putString("propertyId", item)
                     editor.apply()
                     requireActivity().finish()
-                    Toast.makeText(activity!!, propertyCode, Toast.LENGTH_SHORT).show()
+                    val intent = Intent(activity!!, MainActivity::class.java)
+                    startActivity(intent)
+                    Toast.makeText(activity!!, item, Toast.LENGTH_SHORT).show()
                 }
 
                 if (item.contains(getString(R.string.error_fragment))) {
@@ -256,7 +258,7 @@ class MainFragment : BrowseSupportFragment() {
                                 mBackgroundManager.drawable = drawable
                             }
                         })
-//        mBackgroundTimer?.cancel()
+        mBackgroundTimer?.cancel()
     }
 
     private fun startBackgroundTimer() {
@@ -292,25 +294,25 @@ class MainFragment : BrowseSupportFragment() {
         override fun onUnbindViewHolder(viewHolder: Presenter.ViewHolder) {}
     }
 
-    fun getPropertyAddress(code:String):String{
+    private fun propertyCode(code:String):String{
         return when (code) {
-            "h1" -> "12804 Piru Bld SE"
-            "h2" -> "12612 Piru Bld SE"
-            "h3" -> "12708 Piru Bld SE"
-            "h4" -> "12608 Piru Bld SE"
-            else -> "Piru Bld SE"
+            "h1" -> "12804 Piru Blvd SE"
+            "h2" -> "12612 Piru Blvd SE"
+            "h3" -> "12608 Piru Blvd SE"
+            "h4" -> "12708 Piru Blvd SE"
+            else -> "Piru Blvd SE"
         }
     }
 
-    fun getPropertyCode(address: String) :String {
-        return when (address) {
-            "12804 Piru Bld SE" -> "h1"
-            "12612 Piru Bld SE" -> "h2"
-            "12708 Piru Bld SE" -> "h3"
-            "12608 Piru Bld SE" -> "h4"
-            else -> "h1"
-        }
-    }
+//    fun getPropertyCode(address: String) :String {
+//        return when (address) {
+//            "12804 Piru Blvd SE" -> "h1"
+//            "12612 Piru Blvd SE" -> "h2"
+//            "12708 Piru Blvd SE" -> "h3"
+//            "12608 Piru Blvd SE" -> "h4"
+//            else -> "h1"
+//        }
+//    }
 
     companion object {
         const val TAG = "MainFragment"
