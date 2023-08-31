@@ -18,15 +18,15 @@ class YoutubePlaybackActivity : FragmentActivity() {
 
     private lateinit var youTubePlayerView: YouTubePlayerView
     private lateinit var youTubePlayerRef: YouTubePlayer
-//    private lateinit var isPlaying: Boolean
-    private var tracker:YouTubePlayerTracker= YouTubePlayerTracker()
+    private lateinit var tracker:YouTubePlayerTracker;
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_play_video)
 
-        if (savedInstanceState == null) {
+        tracker = YouTubePlayerTracker()
 
+        if (savedInstanceState == null) {
             val movie =
                 intent.getSerializableExtra(MainActivity.MOVIE) as Movie
 
@@ -61,6 +61,7 @@ class YoutubePlaybackActivity : FragmentActivity() {
             } else {
                 youTubePlayerRef.play()
             }
+            Log.i(TAG, "dispatchKeyEvent: ${tracker.state}")
 //            Toast.makeText(this, "isPlaying: $isPlaying, keyCode: $keyCode", Toast.LENGTH_SHORT).show()
             return true
         }

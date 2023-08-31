@@ -13,7 +13,6 @@ import androidx.leanback.app.BackgroundManager
 import androidx.leanback.app.BrowseSupportFragment
 import androidx.leanback.widget.ArrayObjectAdapter
 import androidx.leanback.widget.HeaderItem
-import androidx.leanback.widget.ImageCardView
 import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
 import androidx.leanback.widget.OnItemViewClickedListener
@@ -21,11 +20,11 @@ import androidx.leanback.widget.OnItemViewSelectedListener
 import androidx.leanback.widget.Presenter
 import androidx.leanback.widget.Row
 import androidx.leanback.widget.RowPresenter
-import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
@@ -37,6 +36,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.net.Inet4Address
+import kotlin.concurrent.timerTask
 
 /**
  * Loads a grid of cards with movies to browse.
@@ -47,13 +48,24 @@ class MainFragment : BrowseSupportFragment() {
     private lateinit var mBackgroundManager: BackgroundManager
     private var mDefaultBackground: Drawable? = null
     private lateinit var mMetrics: DisplayMetrics
+//    private var mMetrics: DisplayMetrics = DisplayMetrics()
     private var mBackgroundTimer: Timer? = null
-    private var mBackgroundUri: String? = null
+    private var mBackgroundUri: String? = "h1-bg.png"
+    private var propertyId = "h1"
+    private var propertyPrefs = false
 //    private val serverReader = ServerReader(resources)
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         Log.i(TAG, "onActivityCreated")
         super.onActivityCreated(savedInstanceState)
+
+        // get property id from preferences
+        propertyId = resources.getString(R.string.house_number)
+        if (propertyPrefs){
+            val prefs = requireActivity().getSharedPreferences("com.example.firetvwelcomevids", 0)
+            propertyId = prefs.getString("propertyId", propertyId)!!
+        }
+        mBackgroundUri = "$propertyId-bg.png"
 
         prepareBackgroundManager()
 
@@ -76,7 +88,7 @@ class MainFragment : BrowseSupportFragment() {
         mBackgroundManager.attach(activity!!.window)
         mDefaultBackground = ContextCompat.getDrawable(activity!!, R.drawable.default_background)
         mMetrics = DisplayMetrics()
-        activity!!.windowManager.defaultDisplay.getMetrics(mMetrics)
+        requireActivity().windowManager.defaultDisplay.getMetrics(mMetrics)
     }
 
     private fun setupUIElements() {
@@ -89,21 +101,25 @@ class MainFragment : BrowseSupportFragment() {
         // set fastLane (or headers) background color
         brandColor = ContextCompat.getColor(activity!!, R.color.fastlane_background)
         // set search icon color
-//        searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
+        searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
     }
 
     private fun loadRows() {
         Log.i(TAG, "loadRows: ")
         runBlocking {
 
-            val mediaMap: Map<String,List<Movie>> = getMediaMapFromList(csvMediaList(resources.getString(R.string.house_number),
+            val browserAdapter = ArrayObjectAdapter(ListRowPresenter())
+            val mediaMap: Map<String,List<Movie>> =
+                getMediaMapFromList(csvMediaList(
+//                    resources.getString(R.string.house_number),
+                    propertyId,
                     resources.getString(R.string.REMOTE_USER),
                     resources.getString(R.string.REMOTE_PASSWORD),
                     resources.getString(R.string.REMOTE_HOST),
                     resources.getString(R.string.REMOTE_PORT).toInt()))
 
+
             GlobalScope.launch(Dispatchers.Main) {
-                val browserAdapter = ArrayObjectAdapter(ListRowPresenter())
 
                 if (mediaMap.isEmpty()) {
                     Log.e(TAG, "loadRows: EMPTY MAP", )
@@ -112,20 +128,34 @@ class MainFragment : BrowseSupportFragment() {
 
                     var id = 0
                     for (cat in mediaMap.keys) {
-                        id++
                         val mediaList = mediaMap[cat]
                         Log.i(TAG, "media list:$cat -> $mediaList")
 
                         val cardPresenter = CardPresenter()
-                        val movieListAdapter = ArrayObjectAdapter(cardPresenter)
-                        mediaList?.forEach { movieListAdapter.add(it) }
+                        val mediaListAdapter = ArrayObjectAdapter(cardPresenter)
+                        mediaList?.forEach { mediaListAdapter.add(it) }
+                        
                         browserAdapter.add(ListRow(
                             HeaderItem(id.toLong(), cat),
-                            movieListAdapter))
+                            mediaListAdapter))
                         id++
                     }
                     Log.i(TAG, "loadRows: $browserAdapter")
                 }
+
+                if (propertyPrefs){
+
+                    val gridHeader = HeaderItem(mediaMap.keys.size.toLong(), "Properties")
+
+                    val mGridPresenter = GridItemPresenter()
+                    val gridRowAdapter = ArrayObjectAdapter(mGridPresenter)
+                    gridRowAdapter.add(getPropertyAddress("h1"))
+                    gridRowAdapter.add(getPropertyAddress("h2"))
+                    gridRowAdapter.add(getPropertyAddress("h3"))
+                    gridRowAdapter.add(getPropertyAddress("h4"))
+                    browserAdapter.add(ListRow(gridHeader, gridRowAdapter))
+                }
+
                 adapter = browserAdapter
             }
         }
@@ -141,31 +171,62 @@ class MainFragment : BrowseSupportFragment() {
             if (item is Movie) {
                 Log.d(TAG, "Item: $item")
 
-                if (item.studio == "pdf") {
-                    val intent = Intent(activity!!, PDFActivity::class.java)
-                    intent.putExtra(MainActivity.MOVIE, item)
-                    startActivity(intent)
-                } else if (item.studio == "png" || item.studio == "jpg") {
-                    val intent = Intent(activity!!, ImageActivity::class.java)
-                    intent.putExtra(MainActivity.MOVIE, item)
-                    startActivity(intent)
-                } else if (item.studio == "youtube") {
-                    val intent = Intent(activity!!, YoutubePlaybackActivity::class.java)
-                    intent.putExtra(MainActivity.MOVIE, item)
-                    startActivity(intent)
-                } else if (item.studio == "mp4") {
-                    val intent = Intent(activity!!, PlaybackActivity::class.java)
-                    intent.putExtra(MainActivity.MOVIE, item)
-                    startActivity(intent)
+                when (item.studio)
+                {
+                    "pdf" -> {
+                        val intent = Intent(activity!!, PDFActivity::class.java)
+                        intent.putExtra(MainActivity.MOVIE, item)
+                        startActivity(intent)
+                    }
+                    "png" -> {
+                        val intent = Intent(activity!!, ImageActivity::class.java)
+                        intent.putExtra(MainActivity.MOVIE, item)
+                        startActivity(intent)
+                    }
+                    "jpg" -> {
+                        val intent = Intent(activity!!, ImageActivity::class.java)
+                        intent.putExtra(MainActivity.MOVIE, item)
+                        startActivity(intent)
+                    }
+                    "youtube" -> {
+                        val intent = Intent(activity!!, YoutubePlaybackActivity::class.java)
+                        intent.putExtra(MainActivity.MOVIE, item)
+                        startActivity(intent)
+                    }
+                    "mp4" -> {
+                        val intent = Intent(activity!!, PlaybackActivity::class.java)
+                        intent.putExtra(MainActivity.MOVIE, item)
+                        startActivity(intent)
+                    }
+                    "back" -> {
+                        requireActivity().finish()
+                    }
+//                    "web" -> {
+//                        val intent = Intent(activity!!, WebViewActivity::class.java)
+//                        intent.putExtra(MainActivity.MOVIE, item)
+//                        startActivity(intent)
+//                    }
+                    else -> {
+                        Toast.makeText(activity!!, item.title, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             else if (item is String) {
+
+                if (propertyPrefs){
+
+                    val propertyCode = getPropertyCode(item)
+                    val prefs = activity!!.getSharedPreferences("com.example.firetvwelcomevids", 0)
+                    val editor = prefs.edit()
+                    editor.putString("propertyId", propertyCode)
+                    editor.apply()
+                    requireActivity().finish()
+                    Toast.makeText(activity!!, propertyCode, Toast.LENGTH_SHORT).show()
+                }
+
                 if (item.contains(getString(R.string.error_fragment))) {
                     val intent = Intent(activity!!, BrowseErrorActivity::class.java)
                     startActivity(intent)
-                }
-                else {
-                    Toast.makeText(activity!!, item, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -175,7 +236,7 @@ class MainFragment : BrowseSupportFragment() {
         override fun onItemSelected(itemViewHolder: Presenter.ViewHolder?, item: Any?,
                                     rowViewHolder: RowPresenter.ViewHolder, row: Row) {
             if (item is Movie) {
-                mBackgroundUri = "$serverURL$imagesDir${item.backgroundImageUrl}"
+                mBackgroundUri = "${item.backgroundImageUrl}"
                 startBackgroundTimer()
             }
         }
@@ -184,8 +245,8 @@ class MainFragment : BrowseSupportFragment() {
     private fun updateBackground(uri: String?) {
         val width = mMetrics.widthPixels
         val height = mMetrics.heightPixels
-        Glide.with(activity!!)
-                .load(uri)
+        Glide.with(requireActivity())
+                .load("$serverURL$imagesDir$uri")
                 .centerCrop()
                 .error(mDefaultBackground)
                 .into<SimpleTarget<Drawable>>(
@@ -195,7 +256,7 @@ class MainFragment : BrowseSupportFragment() {
                                 mBackgroundManager.drawable = drawable
                             }
                         })
-        mBackgroundTimer?.cancel()
+//        mBackgroundTimer?.cancel()
     }
 
     private fun startBackgroundTimer() {
@@ -219,6 +280,7 @@ class MainFragment : BrowseSupportFragment() {
             view.isFocusableInTouchMode = true
             view.setBackgroundColor(ContextCompat.getColor(activity!!, R.color.default_background))
             view.setTextColor(Color.WHITE)
+//            view.setTextColor(Color.BLACK)
             view.gravity = Gravity.CENTER
             return Presenter.ViewHolder(view)
         }
@@ -230,8 +292,28 @@ class MainFragment : BrowseSupportFragment() {
         override fun onUnbindViewHolder(viewHolder: Presenter.ViewHolder) {}
     }
 
+    fun getPropertyAddress(code:String):String{
+        return when (code) {
+            "h1" -> "12804 Piru Bld SE"
+            "h2" -> "12612 Piru Bld SE"
+            "h3" -> "12708 Piru Bld SE"
+            "h4" -> "12608 Piru Bld SE"
+            else -> "Piru Bld SE"
+        }
+    }
+
+    fun getPropertyCode(address: String) :String {
+        return when (address) {
+            "12804 Piru Bld SE" -> "h1"
+            "12612 Piru Bld SE" -> "h2"
+            "12708 Piru Bld SE" -> "h3"
+            "12608 Piru Bld SE" -> "h4"
+            else -> "h1"
+        }
+    }
+
     companion object {
-        val TAG = "MainFragment"
+        const val TAG = "MainFragment"
 
         private val BACKGROUND_UPDATE_DELAY = 300
         private val GRID_ITEM_WIDTH = 200

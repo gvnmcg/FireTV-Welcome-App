@@ -2,6 +2,7 @@ package com.example.firetvwelcomevids
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -14,9 +15,6 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.net.HttpURLConnection
 import java.net.URL
-// ...
-
-
 
 class PDFActivity : FragmentActivity() {
     private lateinit var pdfView: PDFView;
@@ -38,6 +36,7 @@ class PDFActivity : FragmentActivity() {
             .show()
 
         val movie = intent.getSerializableExtra(MainActivity.MOVIE) as Movie?
+        Log.i(TAG, "onCreate: video slug ${movie?.videoUrl}")
         movie?.videoUrl?.let { loadPdfFromUrl(it) }
     }
     private fun loadPdfFromUrl(pdfUrl: String) {
@@ -66,11 +65,7 @@ class PDFActivity : FragmentActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         //Back
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            Toast.makeText(this,"Go Back", Toast.LENGTH_SHORT).show()
             finish()
-            val intent = Intent(this, MainActivity::class.java)
-            intent.putExtra(MainActivity.MOVIE, intent.getSerializableExtra(MainActivity.MOVIE))
-            startActivity(intent)
             return true
         }
 

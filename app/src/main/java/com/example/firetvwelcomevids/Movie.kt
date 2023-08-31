@@ -20,18 +20,11 @@ data class Movie(
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", videoUrl='" + videoUrl + '\'' +
-                ", backgroundImageUrl='" + backgroundImageUrl + '\'' +
-                ", cardImageUrl='" + cardImageUrl + '\'' +
+                ", studio='" + studio + '\'' +
+                ", description='" + description + '\'' +
+//                ", backgroundImageUrl='" + backgroundImageUrl + '\'' +
+//                ", cardImageUrl='" + cardImageUrl + '\'' +
                 '}'
-    }
-
-    public fun titleCase(): String? {
-        val articles = setOf("a", "an", "the")
-        return title?.split("_")
-            ?.map { it.lowercase() }
-            ?.map { it -> it.replaceFirstChar { it2 ->  it2.uppercase()  } }
-            ?.map { it -> if (articles.contains(it.lowercase())) it.lowercase()}
-            ?.joinToString(" ")
     }
 
     companion object {
