@@ -8,8 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class ContentfulClient (
-    val token:String,
-    val space:String,
+    private val token:String,
+    private val space:String,
 ) {
     // Create the Contentful client.
     private val client = CDAClient
@@ -19,12 +19,6 @@ class ContentfulClient (
         .setEnvironment("master") // optional, defaults to `master`
         .build()
 
-//    private val client = CDAClient
-//        .builder()
-//        .setToken("Q1HdeN6hmMMw8-CQFFaE52UppSoU_xga1VQ-6J_qRK8") // required
-//        .setSpace("r82o8v93np7l") // required
-//        .setEnvironment("master") // optional, defaults to `master`
-//        .build()
 
     val one: CDAEntry = client
         .fetch(CDAEntry::class.java)
@@ -42,12 +36,6 @@ class ContentfulClient (
     suspend fun fetchContentfulEntry(): CDAEntry? {
         return withContext(Dispatchers.IO) {
             try {
-//                val client = CDAClient
-//                    .builder()
-//                    .setToken("Q1HdeN6hmMMw8-CQFFaE52UppSoU_xga1VQ-6J_qRK8") // required
-//                    .setSpace("r82o8v93np7l") // required
-//                    .setEnvironment("master") // optional, defaults to `master`
-//                    .build()
 
                 val one: CDAEntry = client
                     .fetch(CDAEntry::class.java)
