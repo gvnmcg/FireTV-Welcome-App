@@ -32,10 +32,12 @@ import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
+import com.contentful.java.cda.CDAArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.net.Inet4Address
 import kotlin.concurrent.timerTask
 
@@ -53,6 +55,7 @@ class MainFragment : BrowseSupportFragment() {
     private var mBackgroundUri: String? = "h1-bg.png"
     private var propertyId = "h1"
     private var propertyPrefs = false
+    private lateinit var contentfulClient: ContentfulClient
 //    private val serverReader = ServerReader(resources)
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -71,7 +74,41 @@ class MainFragment : BrowseSupportFragment() {
 
         setupUIElements()
 
-        loadRows()
+//        loadRows()
+
+
+        GlobalScope.launch(Dispatchers.IO) {
+            contentfulClient = ContentfulClient(
+                resources.getString(R.string.CONTENTFUL_TOKEN_ID),
+                resources.getString(R.string.CONTENTFUL_SPACE_ID),
+            )
+//            val entry : List<Media>  =
+            contentfulClient.fetchMedia()
+//            if (entry != null) {
+//                // Handle the fetched entry here
+//                Log.i(TAG, "Content: $entry")
+//            } else {
+//                // Handle the case where the fetch failed
+//                Log.i(TAG, "onActivityCreated: entry is null")
+//            }
+        }
+
+//        GlobalScope.launch(Dispatchers.IO) {
+//            val entry:CDAArray? = contentfulClient.fetchContentfulAll()
+//            if (entry != null) {
+//                // Handle the fetched entry here
+//                Log.i(TAG, "Content: Title $entry")
+//            } else {
+//                // Handle the case where the fetch failed
+//                Log.i(TAG, "onActivityCreated: entry is null")
+//            }
+//        }
+
+        GlobalScope.launch(Dispatchers.Main){
+
+        }
+
+
 
         onItemViewClickedListener = ItemViewClickedListener()
         onItemViewSelectedListener = ItemViewSelectedListener()
