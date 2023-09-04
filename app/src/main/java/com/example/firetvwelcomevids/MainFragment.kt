@@ -31,10 +31,11 @@ import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
+import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 /**
  * Loads a grid of cards with movies to browse.
@@ -45,32 +46,27 @@ class MainFragment : BrowseSupportFragment() {
     private lateinit var mBackgroundManager: BackgroundManager
     private var mDefaultBackground: Drawable? = null
     private lateinit var mMetrics: DisplayMetrics
-//    private var mMetrics: DisplayMetrics = DisplayMetrics()
     private var mBackgroundTimer: Timer? = null
-    private var mBackgroundUri: String? = "h1-bg.png"
-    private var propertyId = "h1"
-    private var propertyPrefs = true
-//    private val serverReader = ServerReader(resources)
+    private var mBackgroundUri: String? = null
+    
+    private var propertyCode = "h1"
+    private var propertyPrefs = false
+    private var propertyMap: Map<String,String> = emptyMap()
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         Log.i(TAG, "onActivityCreated")
         super.onActivityCreated(savedInstanceState)
 
-        // get property id from preferences
-        propertyId = resources.getString(R.string.house_number)
-        if (propertyPrefs){
-            val prefs = requireActivity().getSharedPreferences("com.example.firetvwelcomevids", 0)
-            propertyId = prefs.getString("propertyId", propertyId)!!
-        }
-        mBackgroundUri = "$propertyId-bg.png"
-        startBackgroundTimer()
+        propertyCode = resources.getString(R.string.house_number)
 
+        if (propertyPrefs) overridePropertyCode()
+
+        mBackgroundUri = "$propertyCode-bg.png"
+        startBackgroundTimer()
         prepareBackgroundManager()
 
-        setupUIElements()
-
         loadRows()
-
+        setupUIElements()
         onItemViewClickedListener = ItemViewClickedListener()
         onItemViewSelectedListener = ItemViewSelectedListener()
     }
@@ -79,6 +75,11 @@ class MainFragment : BrowseSupportFragment() {
         super.onDestroy()
         Log.d(TAG, "onDestroy: " + mBackgroundTimer?.toString())
         mBackgroundTimer?.cancel()
+    }
+
+    private fun overridePropertyCode(){
+        val prefs = requireActivity().getSharedPreferences("com.example.firetvwelcomevids", 0)
+        propertyCode = prefs.getString("propertyCode", propertyCode)!!
     }
 
     private fun prepareBackgroundManager() {
@@ -91,31 +92,38 @@ class MainFragment : BrowseSupportFragment() {
 
     private fun setupUIElements() {
         Log.i(TAG, "setupUIElements: ")
-        title = propertyCode(propertyId)
+        title = if (propertyMap.isNotEmpty()) propertyMap[propertyCode] else "Piru Manors"
         // over title
         headersState = BrowseSupportFragment.HEADERS_ENABLED
         isHeadersTransitionOnBackEnabled = true
 
         // set fastLane (or headers) background color
-        brandColor = ContextCompat.getColor(activity!!, R.color.fastlane_background)
+        brandColor = ContextCompat.getColor(requireActivity(), R.color.fastlane_background)
         // set search icon color
-        searchAffordanceColor = ContextCompat.getColor(activity!!, R.color.search_opaque)
+        searchAffordanceColor = ContextCompat.getColor(requireActivity(), R.color.search_opaque)
     }
 
     private fun loadRows() {
         Log.i(TAG, "loadRows: ")
-        runBlocking {
+        GlobalScope.launch(Dispatchers.IO)  {
+
+            val sftpSessionChannel: Pair<Session, ChannelSftp> = openSessionChannel(
+                resources.getString(R.string.REMOTE_USER),
+                resources.getString(R.string.REMOTE_PASSWORD),
+                resources.getString(R.string.REMOTE_HOST),
+                resources.getString(R.string.REMOTE_PORT).toInt())
+
+            val (session,channel) = sftpSessionChannel
+
+            if (propertyPrefs) propertyMap = csvPropertyMap(session,channel)
+
+            val mediaMap: Map<String,List<Movie>> =
+                getMediaMapFromList(csvMediaList(propertyCode, session, channel))
+
+            channel.disconnect()
+            session.disconnect()
 
             val browserAdapter = ArrayObjectAdapter(ListRowPresenter())
-            val mediaMap: Map<String,List<Movie>> =
-                getMediaMapFromList(csvMediaList(
-//                    resources.getString(R.string.house_number),
-                    propertyId,
-                    resources.getString(R.string.REMOTE_USER),
-                    resources.getString(R.string.REMOTE_PASSWORD),
-                    resources.getString(R.string.REMOTE_HOST),
-                    resources.getString(R.string.REMOTE_PORT).toInt()))
-
 
             GlobalScope.launch(Dispatchers.Main) {
 
@@ -131,7 +139,8 @@ class MainFragment : BrowseSupportFragment() {
 
                         val cardPresenter = CardPresenter()
                         val mediaListAdapter = ArrayObjectAdapter(cardPresenter)
-                        mediaList?.forEach { mediaListAdapter.add(it) }
+//                        mediaList?.forEach { mediaListAdapter.add(it) }
+                        for (media in mediaList!!) mediaListAdapter.add(media)
                         
                         browserAdapter.add(ListRow(
                             HeaderItem(id.toLong(), cat),
@@ -141,22 +150,27 @@ class MainFragment : BrowseSupportFragment() {
                     Log.i(TAG, "loadRows: $browserAdapter")
                 }
 
+                val gridHeader = HeaderItem(mediaMap.keys.size.toLong(), "Properties")
+                val mGridPresenter = GridItemPresenter()
+                val gridRowAdapter = ArrayObjectAdapter(mGridPresenter)
+                
                 if (propertyPrefs){
-
-                    val gridHeader = HeaderItem(mediaMap.keys.size.toLong(), "Properties")
-
-                    val mGridPresenter = GridItemPresenter()
-                    val gridRowAdapter = ArrayObjectAdapter(mGridPresenter)
-                    gridRowAdapter.add("h1")
-                    gridRowAdapter.add("h2")
-                    gridRowAdapter.add("h3")
-                    gridRowAdapter.add("h4")
-                    browserAdapter.add(ListRow(gridHeader, gridRowAdapter))
+                    for (key in propertyMap.keys) gridRowAdapter.add(key)
+                } else {
+                    gridRowAdapter.add("Browse Properties")
                 }
+
+                browserAdapter.add(ListRow(gridHeader, gridRowAdapter))
 
                 adapter = browserAdapter
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mBackgroundUri = "$propertyCode-bg.png"
+        startBackgroundTimer()
     }
 
     private inner class ItemViewClickedListener : OnItemViewClickedListener {
@@ -175,59 +189,57 @@ class MainFragment : BrowseSupportFragment() {
                 when (item.studio)
                 {
                     "pdf" -> {
-                        val intent = Intent(activity!!, PDFActivity::class.java)
+                        val intent = Intent(requireActivity(), PDFActivity::class.java)
                         intent.putExtra(MainActivity.MOVIE, item)
                         startActivity(intent)
                     }
                     "png" -> {
-                        val intent = Intent(activity!!, ImageActivity::class.java)
+                        val intent = Intent(requireActivity(), ImageActivity::class.java)
                         intent.putExtra(MainActivity.MOVIE, item)
                         startActivity(intent)
                     }
                     "jpg" -> {
-                        val intent = Intent(activity!!, ImageActivity::class.java)
+                        val intent = Intent(requireActivity(), ImageActivity::class.java)
                         intent.putExtra(MainActivity.MOVIE, item)
                         startActivity(intent)
                     }
                     "youtube" -> {
-                        val intent = Intent(activity!!, YoutubePlaybackActivity::class.java)
+                        val intent = Intent(requireActivity(), YoutubePlaybackActivity::class.java)
                         intent.putExtra(MainActivity.MOVIE, item)
                         startActivity(intent)
                     }
                     "mp4" -> {
-                        val intent = Intent(activity!!, PlaybackActivity::class.java)
+                        val intent = Intent(requireActivity(), PlaybackActivity::class.java)
                         intent.putExtra(MainActivity.MOVIE, item)
                         startActivity(intent)
                     }
                     "back" -> {
                         requireActivity().finish()
                     }
-//                    "web" -> {
-//                        val intent = Intent(activity!!, WebViewActivity::class.java)
-//                        intent.putExtra(MainActivity.MOVIE, item)
-//                        startActivity(intent)
-//                    }
                     else -> {
-                        Toast.makeText(activity!!, item.title, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireActivity(), item.title, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
             else if (item is String) {
 
-                if (propertyPrefs){
+                if (propertyPrefs) {
 
-                    val prefs = activity!!.getSharedPreferences("com.example.firetvwelcomevids", 0)
+                    val prefs = requireActivity().getSharedPreferences("com.example.firetvwelcomevids", 0)
                     val editor = prefs.edit()
-                    editor.putString("propertyId", item)
+                    
+                    editor.putString("propertyCode", item)
                     editor.apply()
+                    
                     requireActivity().finish()
-                    val intent = Intent(activity!!, MainActivity::class.java)
+                    val intent = Intent(requireActivity(), MainActivity::class.java)
                     startActivity(intent)
-                    Toast.makeText(activity!!, item, Toast.LENGTH_SHORT).show()
-                }
+                    
+                    Toast.makeText(requireActivity(), item, Toast.LENGTH_SHORT).show()
+                } 
 
                 if (item.contains(getString(R.string.error_fragment))) {
-                    val intent = Intent(activity!!, BrowseErrorActivity::class.java)
+                    val intent = Intent(requireActivity(), BrowseErrorActivity::class.java)
                     startActivity(intent)
                 }
             }
@@ -280,7 +292,7 @@ class MainFragment : BrowseSupportFragment() {
             view.layoutParams = ViewGroup.LayoutParams(GRID_ITEM_WIDTH, GRID_ITEM_HEIGHT)
             view.isFocusable = true
             view.isFocusableInTouchMode = true
-            view.setBackgroundColor(ContextCompat.getColor(activity!!, R.color.default_background))
+            view.setBackgroundColor(ContextCompat.getColor(requireActivity(), R.color.default_background))
             view.setTextColor(Color.WHITE)
 //            view.setTextColor(Color.BLACK)
             view.gravity = Gravity.CENTER
@@ -293,26 +305,6 @@ class MainFragment : BrowseSupportFragment() {
 
         override fun onUnbindViewHolder(viewHolder: Presenter.ViewHolder) {}
     }
-
-    private fun propertyCode(code:String):String{
-        return when (code) {
-            "h1" -> "12804 Piru Blvd SE"
-            "h2" -> "12612 Piru Blvd SE"
-            "h3" -> "12608 Piru Blvd SE"
-            "h4" -> "12708 Piru Blvd SE"
-            else -> "Piru Blvd SE"
-        }
-    }
-
-//    fun getPropertyCode(address: String) :String {
-//        return when (address) {
-//            "12804 Piru Blvd SE" -> "h1"
-//            "12612 Piru Blvd SE" -> "h2"
-//            "12708 Piru Blvd SE" -> "h3"
-//            "12608 Piru Blvd SE" -> "h4"
-//            else -> "h1"
-//        }
-//    }
 
     companion object {
         const val TAG = "MainFragment"

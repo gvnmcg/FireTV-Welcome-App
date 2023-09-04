@@ -59,29 +59,31 @@ fun findMostSimilarString(target: String, strings: List<String>): String? {
 
 suspend fun csvMediaList(
     property: String,
-    username: String,
-    password: String,
-    remoteHost: String,
-    remotePort: Int
+//    username: String,
+//    password: String,
+//    remoteHost: String,
+//    remotePort: Int,
+    session: Session,
+    channel: ChannelSftp
 ): List<Movie> {
     return withContext(Dispatchers.IO) {
 
-        val jsch = JSch()
-        val session: Session = jsch.getSession(username, remoteHost, remotePort)
-        session.setPassword(password)
-        Log.i(TAG, "movieMapSFTP: Connecting...")
-
-        // Disable strict host key checking (for testing purposes; consider removing in production)
-        session.setConfig("StrictHostKeyChecking", "no")
-        session.connect()
-
-        val channel: ChannelSftp = session.openChannel("sftp") as ChannelSftp
-        channel.connect()
-        Log.i(TAG, "movieMapSFTP: Connected to $remoteHost:$remotePort")
+//        val jsch = JSch()
+//        val session: Session = jsch.getSession(username, remoteHost, remotePort)
+//        session.setPassword(password)
+//        Log.i(TAG, "movieMapSFTP: Connecting...")
+//
+//        // Disable strict host key checking (for testing purposes; consider removing in production)
+//        session.setConfig("StrictHostKeyChecking", "no")
+//        session.connect()
+//
+//        val channel: ChannelSftp = session.openChannel("sftp") as ChannelSftp
+//        channel.connect()
+//        Log.i(TAG, "movieMapSFTP: Connected to $remoteHost:$remotePort")
 
         // Get all media filenames from the server's media folder
         // to be compared with the csv file
-        val mediaFileNamess: List<String> = channel.ls("/android/media")
+        val mediaFileNames: List<String> = channel.ls("/android/media")
             .filterIsInstance<ChannelSftp.LsEntry>().map { it.filename }
             .sortedBy { it }
 
@@ -100,14 +102,15 @@ suspend fun csvMediaList(
         //        # the videos will appear in order as they are here.
 
         val stream: InputStream = channel.get("/android/app-content/$property.csv")
-        val mediaList:List<Movie> = try {
+        val mediaList: List<Movie> = try {
             val ls = mutableListOf<Movie>()
             val br = BufferedReader(InputStreamReader(stream))
             var line: String?
             var count = 0
             while (br.readLine().also { line = it } != null) {
                 if (!line!!.startsWith("#")
-                    && line!!.isNotBlank()) {
+                    && line!!.isNotBlank()
+                ) {
 
                     val parts = line!!.split(",")
                     if (parts.size == 5) {
@@ -120,17 +123,25 @@ suspend fun csvMediaList(
                         val realMediaName =
                             if (type == "youtube") video
                             else
-                            findMostSimilarString(video, mediaFileNamess)
+                                findMostSimilarString(video, mediaFileNames)
 
                         val realImageName = findMostSimilarString(imageSlug, imageFileNames)
 
-                        if (realMediaName != null && realImageName != null) {
-                            if (realMediaName.compareTo(video) != 0
-                                || realImageName.compareTo(imageSlug) != 0) {
-                                Log.i(TAG, "video compare: $video -> $realMediaName")
-                                Log.i(TAG, "image Compare: $imageSlug -> $realImageName")
-                            }
+//                        if (realMediaName != null && realImageName != null) {
+//                            if (realMediaName.compareTo(video) != 0
+//                                || realImageName.compareTo(imageSlug) != 0
+//                            ) {
+//                                Log.i(TAG, "video compare: $video -> $realMediaName")
+//                                Log.i(TAG, "image Compare: $imageSlug -> $realImageName")
+//                            }
+//                        }
+
+                        if ((realMediaName != null) && (realMediaName.compareTo(video) != 0)) {
+                            Log.i(TAG, "video compare: $video -> $realMediaName")
                         }
+
+                        if ((realImageName != null) && (realImageName.compareTo(imageSlug) != 0))
+                            Log.i(TAG, "image Compare: $imageSlug -> $realImageName")
 
                         val newMovie = Movie(
                             count++.toLong(),
@@ -154,11 +165,100 @@ suspend fun csvMediaList(
             println("Exception occurred during reading file from SFTP server due to " + e.message)
             e.message
             emptyList<Movie>()
-        } finally {
-            channel.disconnect()
-            session.disconnect()
         }
         mediaList
+    }
+
+}
+
+suspend fun openSessionChannel(
+    username: String,
+    password: String,
+    remoteHost: String,
+    remotePort: Int,
+): Pair<Session, ChannelSftp> {
+    return withContext(Dispatchers.IO) {
+        val jsch = JSch()
+        val session: Session = jsch.getSession(username, remoteHost, remotePort)
+        session.setPassword(password)
+        Log.i(TAG, "openSessionChannel: Connecting...")
+
+        // Disable strict host key checking (for testing purposes; consider removing in production)
+        session.setConfig("StrictHostKeyChecking", "no")
+        session.connect()
+
+        Log.i(TAG, "openSessionChannel: Opening Channel...")
+        val channel: ChannelSftp = session.openChannel("sftp") as ChannelSftp
+        channel.connect()
+        Log.i(TAG, "openSessionChannel: Connected to $remoteHost:$remotePort")
+
+        Pair(session, channel)
+    }
+}
+
+suspend fun csvPropertyMap(
+    session: Session,
+    channel: ChannelSftp
+): Map<String, String> {
+    return withContext(Dispatchers.IO) {
+        Log.i(TAG, "csvPropertyMap: Getting property map...")
+//        val jsch = JSch()
+//        val session: Session = jsch.getSession(username, remoteHost, remotePort)
+//        session.setPassword(password)
+//        Log.i(TAG, "movieMapSFTP: Connecting...")
+//
+//        // Disable strict host key checking (for testing purposes; consider removing in production)
+//        session.setConfig("StrictHostKeyChecking", "no")
+//        session.connect()
+//
+//        val channel: ChannelSftp = session.openChannel("sftp") as ChannelSftp
+//        channel.connect()
+//        Log.i(TAG, "movieMapSFTP: Connected to $remoteHost:$remotePort")
+//
+
+
+        //        # A line beginning with a # (hash) gets ignored
+        //        # This will explain the structure of this file
+        //        # Each line is a piece of content separated by a comma
+        //        # In this format:
+        //        # (1) category, (2) title on the App, (3) filetype/youtube, (4) Video filename/Video ID, (5) card image filename
+        //        # The location of the content is in the properties respective folder
+        //        # the videos will appear in order as they are here.
+
+        val stream: InputStream = channel.get("/android/app-content/properties.csv")
+        val propertyMap: Map<String, String> = try {
+            val map = mutableMapOf<String, String>()
+            val br = BufferedReader(InputStreamReader(stream))
+            var line: String?
+            while (br.readLine().also { line = it } != null) {
+                if (!line!!.startsWith("#")
+                    && line!!.isNotBlank()
+                ) {
+
+                    val parts = line!!.split(",")
+                    if (parts.size == 2) {
+                        val code = parts[0]
+                        val address = parts[1]
+                        map[code] = address
+                    }
+                }
+            }
+            map
+        } catch (io: IOException) {
+            println("Exception occurred during reading file from SFTP server due to " + io.message)
+            io.message
+            emptyMap<String, String>()
+        } catch (e: java.lang.Exception) {
+            println("Exception occurred during reading file from SFTP server due to " + e.message)
+            e.message
+            emptyMap<String, String>()
+        }
+//        finally {
+//            channel.disconnect()
+//            session.disconnect()
+//        }
+        Log.i(TAG, "csvPropertyMap: Got property map...")
+        propertyMap.toMap()
     }
 
 }
